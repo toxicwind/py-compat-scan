@@ -1,16 +1,21 @@
+<div align="right">
+
+![Python 3.8+](https://img.shields.io/badge/python-3.8%2B-3776ab.svg?style=for-the-badge&logo=python&logoColor=white)
+![AST static analysis](https://img.shields.io/badge/AST-static_analysis-2EAD33.svg?style=for-the-badge)
+![Status: scaffold](https://img.shields.io/badge/status-scaffold-ff6f00.svg?style=for-the-badge)
+[![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg?style=for-the-badge)](LICENSE)
+
+</div>
+
 # py-compat-scan
 
-[![Python 3.8+](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://www.python.org/)
-[![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/)
-[![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![CI](https://github.com/toxicwind/py-compat-scan/actions/workflows/ci.yml/badge.svg)](https://github.com/toxicwind/py-compat-scan/actions)
+**AST-based compatibility scanner for Python 3.12+ → 3.11/3.8 fallback detection.**
 
-> **AST-based compatibility scanner for Python 3.12+ → 3.11/3.8 fallback detection.**
->
-> Zero runtime execution. Pure static analysis via `ast` module. Identifies syntax constructs introduced in Python 3.9–3.12 that break on 3.8 or 3.11, with suggested rewrites.
+> Why should I care? You write modern Python (`type` aliases, `except*`, `match`), then it explodes on the 3.8 box you actually deploy to. py-compat-scan finds those constructs with pure static analysis — zero runtime execution, just the `ast` module — and suggests a fallback rewrite for each one, so you can gate it in CI before the old interpreter finds them for you.
 
-## What It Detects
+**License:** [MIT](LICENSE) · **Security:** pure static analysis — it never executes the code it scans, so scanning untrusted code is safe by construction.
+
+## What it will detect
 
 | Feature | 3.12+ Syntax | Fallback | Severity |
 |---------|-------------|----------|----------|
@@ -22,13 +27,7 @@
 | `typing.ParamSpec` (3.10) | `**P` | `typing_extensions.ParamSpec` | 🟡 Soft |
 | `ast` unparse (3.9) | `ast.unparse(node)` | `astor` or manual codegen | 🟡 Soft |
 
-## Install
-
-```bash
-pip install py-compat-scan
-```
-
-## Usage
+## Target usage
 
 ```bash
 # Scan a single file
@@ -41,8 +40,6 @@ py-compat-scan --target 3.11 --recursive ./src
 py-compat-scan --target 3.8 --format json --fail-on hard ./src
 ```
 
-## API
-
 ```python
 from py_compat_scan import Scanner
 
@@ -52,7 +49,7 @@ for issue in results.hard_blocks:
     print(f"{issue.file}:{issue.line} → {issue.feature} requires {issue.min_version}")
 ```
 
-## CI Integration
+CI gate shape:
 
 ```yaml
 - uses: toxicwind/py-compat-scan@v1
@@ -62,17 +59,26 @@ for issue in results.hard_blocks:
     paths: "./src"
 ```
 
-## Architecture
+## Target architecture
 
+```mermaid
+flowchart LR
+    SRC[Python source] --> SC[scanner.py<br/>AST visitor + version matrix]
+    SC --> FE[features.py<br/>PEP → version → fallback registry]
+    FE --> RW[rewriters.py<br/>suggested transformations]
+    RW --> CLI[cli.py<br/>argparse + json/yaml output]
 ```
-py_compat_scan/
-├── __init__.py
-├── scanner.py          # AST visitor + version matrix
-├── features.py         # Feature registry (PEP → version → fallback)
-├── rewriters.py        # Suggested code transformations
-└── cli.py              # argparse + json/yaml output
-```
 
-## License
+## 🛠️ Status & roadmap
 
-MIT — see [LICENSE](./LICENSE).
+Scaffold stage: the package skeleton (`src/py_compat_scan/__init__.py`, v0.1.0) exists; `scanner.py`, `features.py`, `rewriters.py`, and `cli.py` are not yet implemented. The detection matrix above is the spec they will implement.
+
+- [ ] AST visitor + version matrix (`scanner.py`)
+- [ ] Feature registry: PEP → minimum version → fallback (`features.py`)
+- [ ] Suggested rewrite engine (`rewriters.py`)
+- [ ] CLI with `--target`, `--recursive`, `--format`, `--fail-on` (`cli.py`)
+- [ ] Published package + GitHub Action (`toxicwind/py-compat-scan@v1`)
+
+## 📄 License
+
+MIT — see [LICENSE](LICENSE).
